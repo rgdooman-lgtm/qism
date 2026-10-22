@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>قسم</title>
+<style>
+:root{--main:#6c4cf1;--main2:#8b6dff;--bg:#f4f3fb;--text:#1d1b2e}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+html,body{height:100%;background:var(--bg);color:var(--text)}
+#login,#chat{height:100dvh;display:none;flex-direction:column}
+#login{align-items:center;justify-content:center;gap:16px;padding:24px;
+  background:linear-gradient(160deg,var(--main),var(--main2));color:#fff;text-align:center}
+#login h1{font-size:44px}
+#login p{opacity:.9}
+#login input{width:100%;max-width:320px;padding:14px;border-radius:14px;border:0;font-size:17px;text-align:center}
+#login button{width:100%;max-width:320px;padding:14px;border-radius:14px;border:0;
+  background:#fff;color:var(--main);font-size:17px;font-weight:700}
+header{background:linear-gradient(135deg,var(--main),var(--main2));color:#fff;
+  padding:calc(env(safe-area-inset-top) + 14px) 18px 14px;font-size:20px;font-weight:700}
+#msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:80%;padding:9px 13px;border-radius:16px;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);align-self:flex-end;word-break:break-word}
+.m.me{align-self:flex-start;background:var(--main);color:#fff}
+.n{font-size:12px;font-weight:700;opacity:.75;margin-bottom:2px}
+.t{font-size:11px;opacity:.6;margin-top:3px}
+form{display:flex;gap:8px;padding:10px 10px calc(env(safe-area-inset-bottom) + 10px);background:#fff}
+form input{flex:1;padding:13px 16px;border-radius:24px;border:1px solid #ddd;font-size:16px;outline:none}
+form button{width:48px;height:48px;border-radius:50%;border:0;background:var(--main);color:#fff;font-size:20px}
+#err{color:#ffe3e3;font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>قسم 💬</h1>
+  <p>اكتب اسمك لتبدأ المحادثة</p>
+  <input id="nameInput" maxlength="20" placeholder="اسمك">
+  <button id="startBtn">ابدأ</button>
+  <div id="err"></div>
+</div>
+
+<div id="chat">
+  <header>قسم</header>
+  <div id="msgs"></div>
+  <form id="form">
+    <input id="text" maxlength="500" placeholder="اكتب رسالتك..." autocomplete="off">
+    <button type="submit">➤</button>
+  </form>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDa4Ev98dCo20qf8vdlDxpCnSOtwQI_7WM",
+  authDomain: "qism-chat-2026-marwan.firebaseapp.com",
+  projectId: "qism-chat-2026-marwan",
+  storageBucket: "qism-chat-2026-marwan.firebasestorage.app",
+  messagingSenderId: "413614575776",
+  appId: "1:413614575776:web:20cb34166b122665edf9c5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+let me = null, myName = localStorage.getItem("qism_name") || "";
+
+async function boot() {
+  try {
+    const cred = await signInAnonymously(auth);
+    me = cred.user;
+    if (myName) openChat(); else $("login").style.display = "flex";
+  } catch (e) {
+    $("login").style.display = "flex";
+    $("err").textContent = "تعذر الاتصال: " + e.message;
+  }
+}
+
+$("startBtn").onclick = () => {
+  const n = $("nameInput").value.trim();
+  if (!n) return;
+  if (!me) { $("err").textContent = "لم يتم الاتصال بعد، تأكد من الإنترنت"; return; }
+  myName = n;
+  localStorage.setItem("qism_name", n);
+  openChat();
+};
+
+function openChat() {
+  $("login").style.display = "none";
+  $("chat").style.display = "flex";
+  const q = query(collection(db, "messages"), orderBy("createdAt", "asc"), limit(200));
+  onSnapshot(q, snap => {
+    const box = $("msgs");
+    box.innerHTML = "";
+    snap.forEach(doc => {
+      const d = doc.data();
+      const div = document.createElement("div");
+      div.className = "m" + (d.uid === me.uid ? " me" : "");
+      const n = document.createElement("div"); n.className = "n"; n.textContent = d.name;
+      const t = document.createElement("div"); t.textContent = d.text;
+      const tm = document.createElement("div"); tm.className = "t";
+      tm.textContent = d.createdAt ? d.createdAt.toDate().toLocaleTimeString("ar", {hour:"2-digit", minute:"2-digit"}) : "...";
+      div.append(n, t, tm);
+      box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+$("form").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("text").value.trim();
+  if (!text) return;
+  $("text").value = "";
+  try {
+    await addDoc(collection(db, "messages"), {
+      text, name: myName, uid: me.uid, createdAt: serverTimestamp()
+    });
+  } catch (err) { alert("فشل الإرسال: " + err.message); }
+};
+
+boot();
+</script>
+</body>
+</html>
