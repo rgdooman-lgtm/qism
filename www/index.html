@@ -1,131 +1,195 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>قسم</title>
-<style>
-:root{--main:#6c4cf1;--main2:#8b6dff;--bg:#f4f3fb;--text:#1d1b2e}
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
-html,body{height:100%;background:var(--bg);color:var(--text)}
-#login,#chat{height:100dvh;display:none;flex-direction:column}
-#login{align-items:center;justify-content:center;gap:16px;padding:24px;
-  background:linear-gradient(160deg,var(--main),var(--main2));color:#fff;text-align:center}
-#login h1{font-size:44px}
-#login p{opacity:.9}
-#login input{width:100%;max-width:320px;padding:14px;border-radius:14px;border:0;font-size:17px;text-align:center}
-#login button{width:100%;max-width:320px;padding:14px;border-radius:14px;border:0;
-  background:#fff;color:var(--main);font-size:17px;font-weight:700}
-header{background:linear-gradient(135deg,var(--main),var(--main2));color:#fff;
-  padding:calc(env(safe-area-inset-top) + 14px) 18px 14px;font-size:20px;font-weight:700}
-#msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
-.m{max-width:80%;padding:9px 13px;border-radius:16px;background:#fff;
-  box-shadow:0 1px 3px rgba(0,0,0,.08);align-self:flex-end;word-break:break-word}
-.m.me{align-self:flex-start;background:var(--main);color:#fff}
-.n{font-size:12px;font-weight:700;opacity:.75;margin-bottom:2px}
-.t{font-size:11px;opacity:.6;margin-top:3px}
-form{display:flex;gap:8px;padding:10px 10px calc(env(safe-area-inset-bottom) + 10px);background:#fff}
-form input{flex:1;padding:13px 16px;border-radius:24px;border:1px solid #ddd;font-size:16px;outline:none}
-form button{width:48px;height:48px;border-radius:50%;border:0;background:var(--main);color:#fff;font-size:20px}
-#err{color:#ffe3e3;font-size:14px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>تطبيق قسَم المطور</title>
+    <style>
+        :root { --main: #00adb5; --bg: #121212; --panel: #1e1e1e; --text: #eeeeee; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body, html { height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+        
+        /* شاشة تسجيل الدخول */
+        #login { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        .login-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .login-box h2 { color: var(--main); margin-bottom: 20px; }
+        input, select { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #333; border-radius: 8px; background: #2d2d2d; color: #fff; text-align: center; font-size: 16px; }
+        button { width: 100%; padding: 14px; background: var(--main); border: 0; border-radius: 8px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        #err { color: #ff4a4a; font-size: 14px; margin-top: 10px; }
+
+        /* شاشة التطبيق الرئيسية والغرف */
+        #chat-app { display: none; height: 100%; flex-direction: column; }
+        header { background: linear-gradient(135deg, var(--main), #007a80); color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+        header span.logout { cursor: pointer; font-size: 14px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 5px; }
+        
+        .main-container { display: flex; flex: 1; height: calc(100% - 54px); overflow: hidden; }
+        
+        /* قائمة غرف الدول العربية */
+        #rooms-sidebar { width: 30%; background: var(--panel); border-left: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
+        .room-item { padding: 15px; border-bottom: 1px solid #2d2d2d; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .room-item:hover, .room-item.active { background: #2d2d2d; color: var(--main); }
+        .room-status { font-size: 12px; padding: 2px 6px; border-radius: 4px; }
+        .status-open { background: #2e7d32; color: #fff; }
+        .status-closed { background: #c62828; color: #fff; }
+
+        /* منطقة الدردشة والرسائل */
+        #chat-zone { width: 70%; display: flex; flex-direction: column; background: #161616; position: relative; }
+        #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        .msg { max-width: 75%; padding: 10px; border-radius: 12px; background: #2d2d2d; align-self: flex-start; word-break: break-word; position: relative; }
+        .msg.me { align-self: flex-end; background: var(--main); color: #fff; }
+        .msg-user { font-size: 12px; font-weight: bold; margin-bottom: 3px; opacity: 0.8; }
+        .msg-img { max-width: 100%; border-radius: 8px; margin-top: 5px; display: block; }
+        .msg-seen { font-size: 10px; text-align: left; opacity: 0.6; margin-top: 4px; display: block; }
+
+        /* منطقة الإدخال وأزرار التحكم والأدمن */
+        #admin-panel { background: #222; padding: 10px; border-bottom: 1px solid #333; display: none; justify-content: space-between; align-items: center; }
+        #input-area { padding: 12px; background: var(--panel); display: flex; gap: 10px; align-items: center; border-top: 1px solid #333; }
+        #fileInput { display: none; }
+        .attach-btn { background: #444; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+        
+        /* العملات والهدايا */
+        #coins-badge { background: #ffd700; color: #000; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-<div id="login">
-  <h1>قسم 💬</h1>
-  <p>اكتب اسمك لتبدأ المحادثة</p>
-  <input id="nameInput" maxlength="20" placeholder="اسمك">
-  <button id="startBtn">ابدأ</button>
-  <div id="err"></div>
-</div>
+    <!-- 1. شاشة تسجيل الدخول وإنشاء الحساب -->
+    <div id="login">
+        <div class="login-box">
+            <h2>تطبيق قسَم المطور</h2>
+            <input type="text" id="nameInput" placeholder="اسم المستخدم أو الإيميل">
+            <input type="password" id="passInput" placeholder="كلمة المرور">
+            <button id="startBtn">دخول / تسجيل حساب جديد</button>
+            <div id="err"></div>
+        </div>
+    </div>
 
-<div id="chat">
-  <header>قسم</header>
-  <div id="msgs"></div>
-  <form id="form">
-    <input id="text" maxlength="500" placeholder="اكتب رسالتك..." autocomplete="off">
-    <button type="submit">➤</button>
-  </form>
-</div>
+    <!-- 2. الشاشة الرئيسية للتطبيق (الغرف والدردشة) -->
+    <div id="chat-app">
+        <header>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="app-title">غرف قسَم العربية</span>
+                <span id="coins-badge">🪙 0 عملة</span>
+            </div>
+            <span class="logout" id="logoutBtn">خروج</span>
+        </header>
+        
+        <div class="main-container">
+            <!-- قائمة الغرف العربية -->
+            <div id="rooms-sidebar"></div>
+            
+            <!-- منطقة المحادثة الحية -->
+            <div id="chat-zone">
+                <!-- لوحة تحكم الأدمن والمسؤولين داخل الغرفة -->
+                <div id="admin-panel">
+                    <span id="admin-info">لوحة الإشراف للغرفة</span>
+                    <button id="toggleRoomBtn" style="width: auto; padding: 6px 12px; margin: 0; font-size: 13px;">قفل / فتح الغرفة</button>
+                </div>
+                
+                <!-- عرض الرسائل والصور المرفوعة -->
+                <div id="messages"></div>
+                
+                <!-- حقل الإرسال (إرسال صور فقط بناءً على طلبك) -->
+                <div id="input-area">
+                    <label for="fileInput" class="attach-btn">📷 اضغط لإرسال صورة فقط</label>
+                    <input type="file" id="fileInput" accept="image/*">
+                    <div id="uploadStatus" style="font-size: 14px; opacity: 0.7;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { initializeApp } from "https://gstatic.com";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://gstatic.com";
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, arrayUnion } from "https://gstatic.com";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://gstatic.com";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDa4Ev98dCo20qf8vdlDxpCnSOtwQI_7WM",
-  authDomain: "qism-chat-2026-marwan.firebaseapp.com",
-  projectId: "qism-chat-2026-marwan",
-  storageBucket: "qism-chat-2026-marwan.firebasestorage.app",
-  messagingSenderId: "413614575776",
-  appId: "1:413614575776:web:20cb34166b122665edf9c5"
-};
+  // إعدادات Firebase الخاصة بك
+  const firebaseConfig = {
+    apiKey: "AIzaSyDmEv98dCo20qf0vdtDxPC...", // الكود الموضح في صورتك
+    authDomain: "://firebaseapp.com",
+    projectId: "qism-chat-2026-merwan",
+    storageBucket: "://appspot.com",
+    messagingSenderId: "413614575776",
+    appId: "1:413614575776:web:20cb34166b122665ed19c5"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-const $ = id => document.getElementById(id);
-let me = null, myName = localStorage.getItem("qism_name") || "";
+  let currentUid = null;
+  let currentUsername = "";
+  let currentUserRole = "user"; // الرتب: user, room_admin, super_admin
+  let currentRoomId = "Saudi"; // الغرفة الافتراضية عند البدء
+  let unsubscribeMessages = null;
 
-async function boot() {
-  try {
-    const cred = await signInAnonymously(auth);
-    me = cred.user;
-    if (myName) openChat(); else $("login").style.display = "flex";
-  } catch (e) {
-    $("login").style.display = "flex";
-    $("err").textContent = "تعذر الاتصال: " + e.message;
-  }
-}
+  // قائمة الدول العربية المعتمدة في النظام
+  const arabicCountries = [
+    { id: "Saudi", name: "المملكة العربية السعودية" },
+    { id: "Egypt", name: "جمهورية مصر العربية" },
+    { id: "Iraq", name: "العراق" },
+    { id: "Algeria", name: "الجزائر" },
+    { id: "Morocco", name: "المغرب" },
+    { id: "Tunisia", name: "تونس" },
+    { id: "Jordan", name: "الأردن" },
+    { id: "Lebanon", name: "لبنان" },
+    { id: "Syria", name: "سوريا" },
+    { id: "Emirates", name: "الإمارات" }
+  ];
 
-$("startBtn").onclick = () => {
-  const n = $("nameInput").value.trim();
-  if (!n) return;
-  if (!me) { $("err").textContent = "لم يتم الاتصال بعد، تأكد من الإنترنت"; return; }
-  myName = n;
-  localStorage.setItem("qism_name", n);
-  openChat();
-};
+  // زر الدخول والتسجيل المشترك
+  $("startBtn").onclick = async () => {
+    const inputName = $("nameInput").value.trim();
+    const password = $("passInput").value.trim();
 
-function openChat() {
-  $("login").style.display = "none";
-  $("chat").style.display = "flex";
-  const q = query(collection(db, "messages"), orderBy("createdAt", "asc"), limit(200));
-  onSnapshot(q, snap => {
-    const box = $("msgs");
-    box.innerHTML = "";
-    snap.forEach(doc => {
-      const d = doc.data();
-      const div = document.createElement("div");
-      div.className = "m" + (d.uid === me.uid ? " me" : "");
-      const n = document.createElement("div"); n.className = "n"; n.textContent = d.name;
-      const t = document.createElement("div"); t.textContent = d.text;
-      const tm = document.createElement("div"); tm.className = "t";
-      tm.textContent = d.createdAt ? d.createdAt.toDate().toLocaleTimeString("ar", {hour:"2-digit", minute:"2-digit"}) : "...";
-      div.append(n, t, tm);
-      box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
-  });
-}
+    if (!inputName || !password) {
+      $("err").textContent = "يرجى إدخال الاسم وكلمة السر!";
+      return;
+    }
 
-$("form").onsubmit = async e => {
-  e.preventDefault();
-  const text = $("text").value.trim();
-  if (!text) return;
-  $("text").value = "";
-  try {
-    await addDoc(collection(db, "messages"), {
-      text, name: myName, uid: me.uid, createdAt: serverTimestamp()
-    });
-  } catch (err) { alert("فشل الإرسال: " + err.message); }
-};
+    // لتبسيط عملية الدخول بالاسم، نقوم بإنشاء بريد إلكتروني تلقائي خلفي في الـ Firebase
+    const email = inputName.includes("@") ? inputName : `${inputName}@qism.com`;
 
-boot();
-</script>
-</body>
-</html>
+    try {
+      // محاولة تسجيل الدخول
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await loadUserAndBootstrap(userCredential.user.uid);
+    } catch (error) {
+      // إذا كان الحساب جديد وغير مسجل، يتم إنشاؤه تلقائياً
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const uid = userCredential.user.uid;
+          
+          // تحديد صلاحية حسابك كأدمن عام إذا كتبت الاسم "الأدمن العام" على سبيل المثال
+          let role = "user";
+          if (inputName === "الأدمن العام" || inputName === "admin") { role = "super_admin"; }
+
+          // إنشاء ملف المستخدم في قاعدة البيانات بـ 0 عملة افتراضية
+          await setDoc(doc(db, "users", uid), {
+            username: inputName,
+            role: role,
+            coins: 100, // رصيد ترحيبي للشراء
+            createdAt: serverTimestamp()
+          });
+
+          await loadUserAndBootstrap(uid);
+        } catch (createError) {
+          $("err").textContent = "فشل إنشاء الحساب الجديد: " + createError.message;
+        }
+      } else {
+        $("err").textContent = "خطأ في الاتصال: " + error.message;
+      }
+    }
+  };
+
+  // جلب البيانات الأساسية للمستخدم وتشغيل النظام والدخول للغرف
+  async function loadUserAndBootstrap(uid) {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      currentUid = uid;
